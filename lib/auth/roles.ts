@@ -10,8 +10,11 @@ export type UserRole = (typeof USER_ROLES)[number];
 /** Platform admin role — grants access to /admin routes. */
 export const ADMIN_ROLE = "super_admin" as const satisfies UserRole;
 
-export function isUserRole(value: string): value is UserRole {
-  return (USER_ROLES as readonly string[]).includes(value);
+export function isUserRole(role: unknown): role is UserRole {
+  return (
+    typeof role === "string" &&
+    (USER_ROLES as readonly string[]).includes(role)
+  );
 }
 
 export function isAdminRole(
@@ -23,5 +26,6 @@ export function isAdminRole(
 export function normalizeRole(
   role: UserRole | string | null | undefined,
 ): UserRole {
-  return isUserRole(role ?? "") ? role : "customer";
+  const value = role ?? "";
+  return isUserRole(value) ? value : "customer";
 }
