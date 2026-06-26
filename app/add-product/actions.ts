@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { getAuthenticatedProfile } from "@/lib/auth/profile";
 import { PRODUCT_CATEGORIES } from "@/lib/product-constants";
 import { parseStockQuantity } from "@/lib/inventory";
 import { parseCommaSeparatedList } from "@/lib/parse-comma-list";
@@ -17,23 +18,13 @@ function getImageFiles(formData: FormData): File[] {
 
 async function requireSeller(role: "local_brand" | "stock_seller") {
   const supabase = await createClient();
+  const session = await getAuthenticatedProfile(supabase);
 
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser();
-
-  if (authError || !user) {
+  if (!session) {
     return { error: "Please sign in to add a product.", supabase: null, userId: null };
   }
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .single();
-
-  if (profile?.role !== role) {
+  if (session.profile.role !== role) {
     return {
       error: `This form requires a ${role === "local_brand" ? "Local Brand" : "Original Stock"} seller account.`,
       supabase: null,
@@ -41,7 +32,7 @@ async function requireSeller(role: "local_brand" | "stock_seller") {
     };
   }
 
-  return { error: null, supabase, userId: user.id };
+  return { error: null, supabase, userId: session.user.id };
 }
 
 export async function createLocalBrandProduct(

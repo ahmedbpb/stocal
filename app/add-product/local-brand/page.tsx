@@ -133,7 +133,7 @@ export default function LocalBrandAddProductPage() {
         return;
       }
 
-      router.push("/admin");
+      router.push("/");
     } catch (err) {
       const message =
         err instanceof Error ? err.message : "Failed to submit product.";

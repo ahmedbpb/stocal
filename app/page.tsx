@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, useState } from "react";
+import { FormEvent, Suspense, useState } from "react";
 import { supabase } from "@/lib/supabase";
+import { UnauthorizedNotice } from "@/components/UnauthorizedNotice";
 
 type FormStatus = "idle" | "loading" | "success" | "invalid" | "error" | "duplicate";
 
@@ -48,6 +49,9 @@ export default function Home() {
       </div>
 
       <main className="relative z-10 flex min-h-[calc(100vh-3.5rem)] flex-col">
+        <Suspense fallback={null}>
+          <UnauthorizedNotice />
+        </Suspense>
         {/* Split gateway hero */}
         <section className="grid flex-1 grid-cols-1 md:grid-cols-2">
           <Link

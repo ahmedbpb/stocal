@@ -5,6 +5,9 @@ import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import type { User } from "@supabase/supabase-js";
 import { getCartItemCount } from "@/app/cart/actions";
+import { getAccountLabel, getAccountPath } from "@/lib/auth/redirects";
+import { getProfileForUser } from "@/lib/auth/profile";
+import type { UserRole } from "@/lib/auth/roles";
 import { CART_UPDATED_EVENT } from "@/lib/cart/types";
 import { createClient } from "@/lib/supabase/client";
 
@@ -63,6 +66,7 @@ export function NavBar() {
   const [ready, setReady] = useState(false);
   const [cartCount, setCartCount] = useState(0);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [userRole, setUserRole] = useState<UserRole | null>(null);
 
   const refreshCartCount = useCallback(async () => {
     const count = await getCartItemCount();
@@ -88,6 +92,18 @@ export function NavBar() {
 
     return () => subscription.unsubscribe();
   }, []);
+
+  useEffect(() => {
+    if (!user) {
+      setUserRole(null);
+      return;
+    }
+
+    const supabase = createClient();
+    getProfileForUser(supabase, user.id).then((profile) => {
+      setUserRole(profile?.role ?? "customer");
+    });
+  }, [user]);
 
   useEffect(() => {
     if (!ready) return;
@@ -126,6 +142,8 @@ export function NavBar() {
   }
 
   const isAuthenticated = Boolean(user);
+  const accountHref = isAuthenticated ? getAccountPath(userRole) : "/login";
+  const accountLabel = isAuthenticated ? getAccountLabel(userRole) : "Sign In";
 
   const visibleLinks = NAV_LINKS.filter(
     (link) => !link.authOnly || (ready && isAuthenticated),
@@ -188,10 +206,10 @@ export function NavBar() {
 
           {ready && (
             <Link
-              href={isAuthenticated ? "/admin" : "/login"}
+              href={accountHref}
               className={`${TOUCH_TARGET} ml-1 rounded-lg border border-white/10 bg-white/[0.04] px-4 text-sm font-medium text-white/70 transition-colors hover:bg-white/[0.08] hover:text-white`}
             >
-              {isAuthenticated ? "Account" : "Sign In"}
+              {accountLabel}
             </Link>
           )}
         </nav>
@@ -254,11 +272,11 @@ export function NavBar() {
 
           {ready && (
             <Link
-              href={isAuthenticated ? "/admin" : "/login"}
+              href={accountHref}
               onClick={closeMenu}
               className={`${TOUCH_TARGET} mt-1 w-full rounded-lg border border-white/10 bg-white/[0.04] px-4 text-sm font-medium text-white/70 transition-colors hover:bg-white/[0.08] hover:text-white`}
             >
-              {isAuthenticated ? "Account" : "Sign In"}
+              {accountLabel}
             </Link>
           )}
         </nav>

@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { enforceAdminRouteAccess } from "@/lib/auth/middleware-admin";
 
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
@@ -26,6 +27,14 @@ export async function updateSession(request: NextRequest) {
   );
 
   await supabase.auth.getUser();
+
+  const adminRedirect = await enforceAdminRouteAccess(request, supabase);
+  if (adminRedirect) {
+    supabaseResponse.cookies.getAll().forEach((cookie) => {
+      adminRedirect.cookies.set(cookie.name, cookie.value, cookie);
+    });
+    return adminRedirect;
+  }
 
   return supabaseResponse;
 }

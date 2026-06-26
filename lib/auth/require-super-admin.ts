@@ -1,52 +1,38 @@
 import { createClient } from "@/lib/supabase/server";
+import { getAuthenticatedProfile } from "@/lib/auth/profile";
+import { canAccessAdminRoutes } from "@/lib/auth/redirects";
 import { redirect } from "next/navigation";
 
 export async function requireSuperAdmin() {
   const supabase = await createClient();
+  const session = await getAuthenticatedProfile(supabase);
 
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser();
-
-  if (authError || !user) {
-    redirect("/login");
+  if (!session) {
+    redirect("/login?next=/admin");
   }
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .single();
-
-  if (profile?.role !== "super_admin") {
+  if (!canAccessAdminRoutes(session.profile.role)) {
     redirect("/");
   }
 
-  return { supabase, user, profile };
+  return {
+    supabase,
+    user: session.user,
+    profile: session.profile,
+  };
 }
 
 export async function assertSuperAdmin() {
   const supabase = await createClient();
+  const session = await getAuthenticatedProfile(supabase);
 
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser();
-
-  if (authError || !user) {
+  if (!session) {
     throw new Error("Unauthorized: authentication required");
   }
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .single();
-
-  if (profile?.role !== "super_admin") {
+  if (!canAccessAdminRoutes(session.profile.role)) {
     throw new Error("Forbidden: super_admin role required");
   }
 
-  return { supabase, user };
+  return { supabase, user: session.user, profile: session.profile };
 }

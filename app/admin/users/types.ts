@@ -1,11 +1,6 @@
-export const USER_ROLES = [
-  "customer",
-  "local_brand",
-  "stock_seller",
-  "super_admin",
-] as const;
+export { USER_ROLES, type UserRole, isUserRole } from "@/lib/auth/roles";
 
-export type UserRole = (typeof USER_ROLES)[number];
+import type { UserRole } from "@/lib/auth/roles";
 
 export type AdminUser = {
   id: string;

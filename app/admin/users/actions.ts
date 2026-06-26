@@ -3,15 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { fetchAdminUsers } from "@/lib/admin/fetch-admin-users";
 import { assertSuperAdmin } from "@/lib/auth/require-super-admin";
-import {
-  USER_ROLES,
-  type AdminUser,
-  type UserRole,
-} from "@/app/admin/users/types";
-
-function isUserRole(value: string): value is UserRole {
-  return (USER_ROLES as readonly string[]).includes(value);
-}
+import { isUserRole, type UserRole } from "@/lib/auth/roles";
+import type { AdminUser } from "@/app/admin/users/types";
 
 export async function getAdminUsers(): Promise<AdminUser[]> {
   const { supabase } = await assertSuperAdmin();
