@@ -118,9 +118,9 @@ function parseStockSellerFields(
   formData: FormData,
   options?: { existingDefectImageUrl?: string | null },
 ):
-  | { error: string }
+  | { success: false; error: string }
   | {
-      error: null;
+      success: true;
       condition: string;
       hasDefects: boolean;
       defectDescription: string | null;
@@ -139,22 +139,23 @@ function parseStockSellerFields(
 
   const validConditions = STOCK_CONDITIONS.map((c) => c.value) as string[];
   if (!condition || !validConditions.includes(condition)) {
-    return { error: "Select a valid condition." };
+    return { success: false, error: "Select a valid condition." };
   }
 
   if (hasDefects) {
     if (!defectDescription || defectDescription.length < DEFECT_MIN_CHARS) {
       return {
+        success: false,
         error: `Describe the defect (at least ${DEFECT_MIN_CHARS} characters).`,
       };
     }
     if (!defectImage && !options?.existingDefectImageUrl) {
-      return { error: "Upload a defect photo." };
+      return { success: false, error: "Upload a defect photo." };
     }
   }
 
   return {
-    error: null,
+    success: true,
     condition,
     hasDefects,
     defectDescription: hasDefects ? defectDescription : null,
@@ -229,12 +230,13 @@ export async function createSellerProduct(
 
   if (role === "stock_seller") {
     const stockFieldsResult = parseStockSellerFields(formData);
-    if (stockFieldsResult.error) return { error: stockFieldsResult.error };
-    const stockFields = stockFieldsResult;
-    condition = stockFields.condition;
-    isIntact = stockFields.isIntact;
-    defectDescription = stockFields.defectDescription;
-    defectImage = stockFields.defectImage;
+    if (!stockFieldsResult.success) {
+      return { error: stockFieldsResult.error };
+    }
+    condition = stockFieldsResult.condition;
+    isIntact = stockFieldsResult.isIntact;
+    defectDescription = stockFieldsResult.defectDescription;
+    defectImage = stockFieldsResult.defectImage;
   }
 
   const { data: product, error: insertError } = await supabase
@@ -357,12 +359,13 @@ export async function updateSellerProduct(
     const stockFieldsResult = parseStockSellerFields(formData, {
       existingDefectImageUrl: existing.defect_image_url,
     });
-    if (stockFieldsResult.error) return { error: stockFieldsResult.error };
-    const stockFields = stockFieldsResult;
-    condition = stockFields.condition;
-    isIntact = stockFields.isIntact;
-    defectDescription = stockFields.defectDescription;
-    defectImage = stockFields.defectImage;
+    if (!stockFieldsResult.success) {
+      return { error: stockFieldsResult.error };
+    }
+    condition = stockFieldsResult.condition;
+    isIntact = stockFieldsResult.isIntact;
+    defectDescription = stockFieldsResult.defectDescription;
+    defectImage = stockFieldsResult.defectImage;
   }
 
   let imageUrls = keptUrls;
