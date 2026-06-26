@@ -7,12 +7,14 @@ export function ReportModal({
   open,
   targetLabel,
   loading,
+  successMessage,
   onClose,
   onSubmit,
 }: {
   open: boolean;
   targetLabel: string;
   loading: boolean;
+  successMessage?: string | null;
   onClose: () => void;
   onSubmit: (reason: ReportReason, details: string) => void;
 }) {
@@ -48,6 +50,12 @@ export function ReportModal({
         <h3 className="text-lg font-semibold text-white">Report content</h3>
         <p className="mt-1 text-sm text-white/50">Reporting: {targetLabel}</p>
 
+        {successMessage ? (
+          <p className="mt-4 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200">
+            {successMessage}
+          </p>
+        ) : (
+          <>
         <label className="mt-4 block text-xs font-medium uppercase tracking-wider text-white/50">
           Reason
         </label>
@@ -91,6 +99,8 @@ export function ReportModal({
             {loading ? "Submitting…" : "Submit report"}
           </button>
         </div>
+          </>
+        )}
       </form>
     </div>
   );

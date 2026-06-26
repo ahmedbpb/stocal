@@ -12,13 +12,25 @@ import {
   deleteComment,
   markReportReviewed,
   rejectPost,
+  removeReportedComment,
+  removeReportedPost,
 } from "@/app/moderator/actions";
+
+type ModStats = {
+  pendingPosts: number;
+  pendingReports: number;
+  commentsToday: number;
+  approvedPosts: number;
+};
 
 type PendingPost = {
   id: string;
   content: string;
   imageUrl: string | null;
   authorName: string;
+  authorId: string;
+  userJoinDate: string;
+  reportCount: number;
   createdAt: string;
 };
 
@@ -27,6 +39,7 @@ type ModComment = {
   content: string;
   authorName: string;
   postId: string;
+  postPreview: string;
   createdAt: string;
   isFlagged: boolean;
 };
@@ -36,7 +49,7 @@ type ModReport = {
   reporterName: string;
   targetType: "post" | "comment";
   targetId: string;
-  targetPreview: string;
+  targetContent: string;
   reason: string;
   details: string | null;
   createdAt: string;
@@ -65,6 +78,12 @@ export default function ModeratorDashboard() {
   const [pendingPosts, setPendingPosts] = useState<PendingPost[]>([]);
   const [comments, setComments] = useState<ModComment[]>([]);
   const [reports, setReports] = useState<ModReport[]>([]);
+  const [stats, setStats] = useState<ModStats>({
+    pendingPosts: 0,
+    pendingReports: 0,
+    commentsToday: 0,
+    approvedPosts: 0,
+  });
   const [loading, setLoading] = useState(true);
   const [actionId, setActionId] = useState<string | null>(null);
   const [rejectTarget, setRejectTarget] = useState<PendingPost | null>(null);
@@ -78,9 +97,43 @@ export default function ModeratorDashboard() {
   const fetchData = useCallback(async () => {
     setLoading(true);
 
+    const startOfDay = new Date();
+    startOfDay.setHours(0, 0, 0, 0);
+
+    const [
+      { count: pendingPostCount },
+      { count: pendingReportCount },
+      { count: commentsTodayCount },
+      { count: approvedPostCount },
+    ] = await Promise.all([
+      supabase
+        .from("posts")
+        .select("*", { count: "exact", head: true })
+        .eq("status", "pending"),
+      supabase
+        .from("reports")
+        .select("*", { count: "exact", head: true })
+        .eq("status", "pending"),
+      supabase
+        .from("comments")
+        .select("*", { count: "exact", head: true })
+        .gte("created_at", startOfDay.toISOString()),
+      supabase
+        .from("posts")
+        .select("*", { count: "exact", head: true })
+        .eq("status", "approved"),
+    ]);
+
+    setStats({
+      pendingPosts: pendingPostCount ?? 0,
+      pendingReports: pendingReportCount ?? 0,
+      commentsToday: commentsTodayCount ?? 0,
+      approvedPosts: approvedPostCount ?? 0,
+    });
+
     const { data: pendingData, error: pendingError } = await supabase
       .from("posts")
-      .select("id, content, image_url, created_at, profiles(full_name)")
+      .select("id, content, image_url, created_at, user_id, profiles(full_name, created_at)")
       .eq("status", "pending")
       .order("created_at", { ascending: false });
 
@@ -88,21 +141,32 @@ export default function ModeratorDashboard() {
       showToast("Failed to load pending posts.", "error");
     } else {
       setPendingPosts(
-        (pendingData ?? []).map((row) => {
-          const profile = firstJoin(
-            row.profiles as
-              | { full_name: string | null }
-              | { full_name: string | null }[]
-              | null,
-          );
-          return {
-            id: row.id,
-            content: row.content,
-            imageUrl: row.image_url,
-            authorName: profile?.full_name ?? "Member",
-            createdAt: row.created_at,
-          };
-        }),
+        await Promise.all(
+          (pendingData ?? []).map(async (row) => {
+            const profile = firstJoin(
+              row.profiles as
+                | { full_name: string | null; created_at: string }
+                | { full_name: string | null; created_at: string }[]
+                | null,
+            );
+            const { count } = await supabase
+              .from("reports")
+              .select("*", { count: "exact", head: true })
+              .eq("target_type", "post")
+              .eq("target_id", row.id)
+              .eq("status", "pending");
+            return {
+              id: row.id,
+              content: row.content,
+              imageUrl: row.image_url,
+              authorName: profile?.full_name ?? "Member",
+              authorId: row.user_id,
+              userJoinDate: profile?.created_at ?? row.created_at,
+              reportCount: count ?? 0,
+              createdAt: row.created_at,
+            };
+          }),
+        ),
       );
     }
 
@@ -119,7 +183,7 @@ export default function ModeratorDashboard() {
 
     const { data: commentsData } = await supabase
       .from("comments")
-      .select("id, content, created_at, post_id, profiles(full_name)")
+      .select("id, content, created_at, post_id, profiles(full_name), posts(content)")
       .order("created_at", { ascending: false })
       .limit(100);
 
@@ -131,11 +195,18 @@ export default function ModeratorDashboard() {
             | { full_name: string | null }[]
             | null,
         );
+        const post = firstJoin(
+          row.posts as
+            | { content: string }
+            | { content: string }[]
+            | null,
+        );
         return {
           id: row.id,
           content: row.content,
           authorName: profile?.full_name ?? "Member",
           postId: row.post_id,
+          postPreview: post?.content?.slice(0, 60) ?? "Post",
           createdAt: row.created_at,
           isFlagged: flaggedCommentIds.has(row.id),
         };
@@ -156,7 +227,7 @@ export default function ModeratorDashboard() {
         .eq("id", row.reporter_id)
         .maybeSingle();
 
-      let targetPreview = row.target_id.slice(0, 8);
+      let targetContent = row.target_id.slice(0, 8);
 
       if (row.target_type === "post") {
         const { data: post } = await supabase
@@ -164,14 +235,14 @@ export default function ModeratorDashboard() {
           .select("content")
           .eq("id", row.target_id)
           .maybeSingle();
-        targetPreview = post?.content?.slice(0, 80) ?? targetPreview;
+        targetContent = post?.content ?? targetContent;
       } else {
         const { data: comment } = await supabase
           .from("comments")
           .select("content")
           .eq("id", row.target_id)
           .maybeSingle();
-        targetPreview = comment?.content?.slice(0, 80) ?? targetPreview;
+        targetContent = comment?.content ?? targetContent;
       }
 
       mappedReports.push({
@@ -179,7 +250,7 @@ export default function ModeratorDashboard() {
         reporterName: reporterProfile?.full_name ?? "User",
         targetType: row.target_type as "post" | "comment",
         targetId: row.target_id,
-        targetPreview,
+        targetContent,
         reason: row.reason,
         details: row.details,
         createdAt: row.created_at,
@@ -232,7 +303,7 @@ export default function ModeratorDashboard() {
     showToast("Comment deleted.", "success");
   }
 
-  async function handleReviewReport(reportId: string) {
+  async function handleDismissReport(reportId: string) {
     setActionId(reportId);
     const result = await markReportReviewed(reportId);
     setActionId(null);
@@ -241,8 +312,32 @@ export default function ModeratorDashboard() {
       return;
     }
     setReports((prev) => prev.filter((r) => r.id !== reportId));
-    showToast("Report marked as reviewed.", "success");
+    showToast("Report dismissed.", "success");
   }
+
+  async function handleRemoveReported(report: ModReport) {
+    if (!confirm("Remove reported content and dismiss report?")) return;
+    setActionId(report.id);
+    const result =
+      report.targetType === "post"
+        ? await removeReportedPost(report.id, report.targetId)
+        : await removeReportedComment(report.id, report.targetId);
+    setActionId(null);
+    if (result.error) {
+      showToast(result.error, "error");
+      return;
+    }
+    setReports((prev) => prev.filter((r) => r.id !== report.id));
+    showToast("Content removed.", "success");
+    fetchData();
+  }
+
+  const statCards = [
+    { label: "Pending posts", value: stats.pendingPosts },
+    { label: "Pending reports", value: stats.pendingReports },
+    { label: "Comments today", value: stats.commentsToday },
+    { label: "Approved posts", value: stats.approvedPosts },
+  ];
 
   return (
     <div className="flex min-h-screen bg-[#080808] text-white">
@@ -326,6 +421,20 @@ export default function ModeratorDashboard() {
         </header>
 
         <div className="p-4 sm:p-8">
+          <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
+            {statCards.map((card) => (
+              <div
+                key={card.label}
+                className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-4"
+              >
+                <p className="text-xs uppercase tracking-wider text-white/40">
+                  {card.label}
+                </p>
+                <p className="mt-2 text-2xl font-bold text-white">{card.value}</p>
+              </div>
+            ))}
+          </div>
+
           {loading ? (
             <p className="text-white/40">Loading…</p>
           ) : activeTab === "Pending Posts" ? (
@@ -352,8 +461,23 @@ export default function ModeratorDashboard() {
                       )}
                       <div className="min-w-0 flex-1">
                         <p className="text-sm text-white/50">
-                          {post.authorName} · {formatRelativeTime(post.createdAt)}
+                          <Link
+                            href={`/profile/${post.authorId}`}
+                            className="text-white/70 hover:underline"
+                          >
+                            {post.authorName}
+                          </Link>
+                          {" · "}
+                          Joined {formatRelativeTime(post.userJoinDate)}
+                          {" · "}
+                          {formatRelativeTime(post.createdAt)}
                         </p>
+                        {post.reportCount > 0 && (
+                          <p className="mt-1 text-xs text-orange-300">
+                            {post.reportCount} pending report
+                            {post.reportCount === 1 ? "" : "s"}
+                          </p>
+                        )}
                         <p className="mt-2 text-sm text-white/80">{post.content}</p>
                       </div>
                     </div>
@@ -396,9 +520,15 @@ export default function ModeratorDashboard() {
                     <p className="text-xs text-white/40">
                       {comment.authorName} · {formatRelativeTime(comment.createdAt)}
                       {comment.isFlagged && (
-                        <span className="ml-2 text-orange-300">Flagged</span>
+                        <span className="ml-2 text-orange-300">Reported</span>
                       )}
                     </p>
+                    <Link
+                      href="/community"
+                      className="mt-1 block text-xs text-cyan-400 hover:underline"
+                    >
+                      On post: {comment.postPreview}…
+                    </Link>
                     <p className="mt-2 text-sm text-white/80">{comment.content}</p>
                     <button
                       type="button"
@@ -431,8 +561,8 @@ export default function ModeratorDashboard() {
                     <tr key={report.id}>
                       <td className="px-4 py-3">{report.reporterName}</td>
                       <td className="px-4 py-3 capitalize">{report.targetType}</td>
-                      <td className="max-w-xs truncate px-4 py-3 text-white/70">
-                        {report.targetPreview}
+                      <td className="max-w-xs px-4 py-3 text-white/70">
+                        {report.targetContent}
                       </td>
                       <td className="px-4 py-3 text-white/60">
                         {report.reason}
@@ -441,14 +571,24 @@ export default function ModeratorDashboard() {
                         )}
                       </td>
                       <td className="px-4 py-3 text-right">
-                        <button
-                          type="button"
-                          onClick={() => handleReviewReport(report.id)}
-                          disabled={actionId === report.id}
-                          className="rounded-lg bg-white/10 px-3 py-1.5 text-xs font-semibold text-white/80 hover:bg-white/15 disabled:opacity-50"
-                        >
-                          Mark reviewed
-                        </button>
+                        <div className="flex justify-end gap-2">
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveReported(report)}
+                            disabled={actionId === report.id}
+                            className="rounded-lg bg-red-500/15 px-3 py-1.5 text-xs font-semibold text-red-400 ring-1 ring-red-500/30 disabled:opacity-50"
+                          >
+                            Remove
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDismissReport(report.id)}
+                            disabled={actionId === report.id}
+                            className="rounded-lg bg-white/10 px-3 py-1.5 text-xs font-semibold text-white/80 hover:bg-white/15 disabled:opacity-50"
+                          >
+                            Dismiss
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}

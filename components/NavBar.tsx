@@ -10,6 +10,7 @@ import type { UserRole } from "@/lib/auth/roles";
 import { CART_UPDATED_EVENT } from "@/lib/cart/types";
 import { createClient } from "@/lib/supabase/client";
 import { UserMenu } from "@/components/nav/user-menu";
+import { NotificationBell } from "@/components/nav/notification-bell";
 
 type NavLink = {
   href: string;
@@ -227,6 +228,10 @@ export function NavBar() {
 
           {cartLink}
 
+          {ready && isAuthenticated && user && (
+            <NotificationBell userId={user.id} />
+          )}
+
           {ready && isAuthenticated && userRole && (
             <UserMenu
               fullName={userFullName}
@@ -249,6 +254,10 @@ export function NavBar() {
         {/* Mobile: cart + hamburger */}
         <div className="flex items-center gap-1 md:hidden">
           {cartLink}
+
+          {ready && isAuthenticated && user && (
+            <NotificationBell userId={user.id} />
+          )}
 
           <button
             type="button"

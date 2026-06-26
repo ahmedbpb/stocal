@@ -1,45 +1,110 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { NewPostModal } from "@/components/community/new-post-modal";
 import { PostCard } from "@/components/community/post-card";
-import type { CommunityPost } from "@/lib/community/types";
+import { FeedSkeleton } from "@/components/community/feed-skeleton";
+import type { CommunityPost, FeedTab } from "@/lib/community/types";
+
+const TABS: { id: FeedTab; label: string; authOnly?: boolean }[] = [
+  { id: "feed", label: "Feed" },
+  { id: "following", label: "Following", authOnly: true },
+  { id: "my-posts", label: "My Posts", authOnly: true },
+];
 
 export function CommunityFeed({
-  posts,
+  initialPosts,
+  initialTab,
   isAuthenticated,
+  currentUserId,
 }: {
-  posts: CommunityPost[];
+  initialPosts: CommunityPost[];
+  initialTab: FeedTab;
   isAuthenticated: boolean;
+  currentUserId: string | null;
 }) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [modalOpen, setModalOpen] = useState(false);
+  const [tab, setTab] = useState<FeedTab>(initialTab);
+  const [posts, setPosts] = useState(initialPosts);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    setPosts(initialPosts);
+    setTab(initialTab);
+  }, [initialPosts, initialTab]);
+
+  const loadTab = useCallback(
+    async (nextTab: FeedTab) => {
+      setLoading(true);
+      const res = await fetch(`/api/community/feed?tab=${nextTab}`);
+      const data = (await res.json()) as { posts: CommunityPost[] };
+      setPosts(data.posts ?? []);
+      setLoading(false);
+    },
+    [],
+  );
+
+  function switchTab(nextTab: FeedTab) {
+    if (nextTab === tab) return;
+    setTab(nextTab);
+    const params = new URLSearchParams(searchParams.toString());
+    if (nextTab === "feed") params.delete("tab");
+    else params.set("tab", nextTab);
+    router.push(`/community${params.toString() ? `?${params}` : ""}`);
+    loadTab(nextTab);
+  }
+
+  const emptyMessages: Record<FeedTab, string> = {
+    feed: "No posts yet. Be the first to share!",
+    following: "Follow members to see their posts here.",
+    "my-posts": "You haven't posted yet. Share something with the community!",
+  };
 
   return (
     <div className="relative">
-      {isAuthenticated && (
-        <div className="mb-6 flex justify-end sm:justify-between sm:items-center">
-          <p className="hidden text-sm text-white/40 sm:block">
-            Share updates, finds, and style inspiration
-          </p>
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap gap-1 rounded-xl border border-white/10 bg-white/[0.02] p-1">
+          {TABS.filter((t) => !t.authOnly || isAuthenticated).map((t) => (
+            <button
+              key={t.id}
+              type="button"
+              onClick={() => switchTab(t.id)}
+              className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
+                tab === t.id
+                  ? "bg-white/10 text-white"
+                  : "text-white/50 hover:text-white"
+              }`}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+
+        {isAuthenticated && (
           <button
             type="button"
             onClick={() => setModalOpen(true)}
-            className="rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-600 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-fuchsia-500/20 transition-opacity hover:opacity-90"
+            className="rounded-xl border border-white/20 px-5 py-2.5 text-sm font-medium text-white hover:bg-white/10"
           >
             + New Post
           </button>
-        </div>
-      )}
+        )}
+      </div>
 
       {!isAuthenticated && (
         <p className="mb-6 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-center text-sm text-white/50">
-          Sign in to post, react, and comment
+          Sign in to post, react, comment, and follow members
         </p>
       )}
 
-      {posts.length === 0 ? (
+      {loading ? (
+        <FeedSkeleton />
+      ) : posts.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-white/10 px-6 py-16 text-center">
-          <p className="text-white/50">No posts yet. Be the first to share!</p>
+          <p className="text-white/50">{emptyMessages[tab]}</p>
         </div>
       ) : (
         <div className="space-y-4">
@@ -48,7 +113,8 @@ export function CommunityFeed({
               key={post.id}
               post={post}
               isAuthenticated={isAuthenticated}
-              onCommentsOpen={() => {}}
+              currentUserId={currentUserId}
+              showStatus={tab === "my-posts"}
             />
           ))}
         </div>
@@ -58,7 +124,7 @@ export function CommunityFeed({
         <button
           type="button"
           onClick={() => setModalOpen(true)}
-          className="fixed bottom-6 right-6 z-20 flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-violet-600 to-fuchsia-600 text-2xl font-light text-white shadow-xl shadow-fuchsia-500/30 sm:hidden"
+          className="fixed bottom-6 right-6 z-20 flex h-14 w-14 items-center justify-center rounded-full border border-white/20 bg-black text-2xl text-white shadow-xl sm:hidden"
           aria-label="New post"
         >
           +

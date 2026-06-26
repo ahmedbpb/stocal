@@ -1,15 +1,32 @@
+import { Suspense } from "react";
 import { AmbientBackground } from "@/components/AmbientBackground";
 import { CommunityFeed } from "@/components/community/community-feed";
-import { getApprovedPosts } from "@/lib/community/queries";
+import { FeedSkeleton } from "@/components/community/feed-skeleton";
+import { getFeedPosts } from "@/lib/community/queries";
+import type { FeedTab } from "@/lib/community/types";
 import { createClient } from "@/lib/supabase/server";
 
-export default async function CommunityPage() {
+type CommunityPageProps = {
+  searchParams: Promise<{ tab?: string }>;
+};
+
+export default async function CommunityPage({ searchParams }: CommunityPageProps) {
+  const { tab: tabParam } = await searchParams;
+  const tab = (tabParam ?? "feed") as FeedTab;
+  const validTab: FeedTab =
+    tab === "following" || tab === "my-posts" ? tab : "feed";
+
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const posts = await getApprovedPosts(user?.id ?? null);
+  const activeTab =
+    !user && (validTab === "following" || validTab === "my-posts")
+      ? "feed"
+      : validTab;
+
+  const posts = await getFeedPosts(activeTab, user?.id ?? null);
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-[#0a0a0a] text-white">
@@ -27,7 +44,14 @@ export default async function CommunityPage() {
           </p>
         </header>
 
-        <CommunityFeed posts={posts} isAuthenticated={Boolean(user)} />
+        <Suspense fallback={<FeedSkeleton />}>
+          <CommunityFeed
+            initialPosts={posts}
+            initialTab={activeTab}
+            isAuthenticated={Boolean(user)}
+            currentUserId={user?.id ?? null}
+          />
+        </Suspense>
       </main>
     </div>
   );
