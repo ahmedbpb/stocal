@@ -16,7 +16,7 @@ type Toast = {
 function ToastNotification({ toast }: { toast: Toast }) {
   return (
     <div
-      className={`fixed bottom-6 right-6 z-50 flex items-center gap-3 rounded-xl border px-5 py-3.5 shadow-2xl backdrop-blur-md ${
+      className={`fixed bottom-6 left-4 right-4 z-50 mx-auto flex max-w-sm items-center gap-3 rounded-xl border px-5 py-3.5 shadow-2xl backdrop-blur-md sm:left-auto sm:right-6 ${
         toast.type === "success"
           ? "border-emerald-500/30 bg-emerald-500/15 text-emerald-200"
           : "border-red-500/30 bg-red-500/15 text-red-200"
@@ -80,7 +80,7 @@ function VariantPills({
               key={option}
               type="button"
               onClick={() => onSelect(option)}
-              className={`rounded-full border px-4 py-2 text-sm font-medium transition-all ${
+              className={`min-h-11 rounded-full border px-4 py-2.5 text-sm font-medium transition-all ${
                 active
                   ? "border-white bg-white text-black"
                   : "border-white/15 bg-white/[0.04] text-white/70 hover:border-white/30 hover:text-white"
@@ -155,7 +155,7 @@ export default function ProductDetailsClient({
     <>
       {toast && <ToastNotification toast={toast} />}
 
-      <main className="relative z-10 mx-auto max-w-6xl px-6 py-10">
+      <main className="relative z-10 mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-10">
         <Link
           href={
             product.product_type === "local_brand"
@@ -367,7 +367,7 @@ export default function ProductDetailsClient({
                 type="button"
                 onClick={handleAddToCart}
                 disabled={adding || !canAddToCart}
-                className="w-full rounded-xl bg-white py-4 text-sm font-bold uppercase tracking-widest text-black transition-all hover:bg-gradient-to-r hover:from-violet-500 hover:via-fuchsia-500 hover:to-cyan-400 hover:text-white active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40 sm:w-auto sm:px-12"
+                className="min-h-11 w-full rounded-xl bg-white px-6 py-3 text-sm font-bold uppercase tracking-widest text-black transition-all hover:bg-gradient-to-r hover:from-violet-500 hover:via-fuchsia-500 hover:to-cyan-400 hover:text-white active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40 sm:w-auto sm:px-12"
               >
                 {outOfStock
                   ? "Sold Out"
@@ -377,7 +377,7 @@ export default function ProductDetailsClient({
               </button>
               <Link
                 href="/cart"
-                className="text-center text-xs font-medium uppercase tracking-wider text-white/40 transition-colors hover:text-white/70"
+                className="inline-flex min-h-11 items-center justify-center text-center text-xs font-medium uppercase tracking-wider text-white/40 transition-colors hover:text-white/70"
               >
                 View Cart →
               </Link>

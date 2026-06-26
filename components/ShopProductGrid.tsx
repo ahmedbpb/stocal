@@ -30,7 +30,7 @@ export function ShopProductGrid({
   }
 
   return (
-    <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+    <div className="grid grid-cols-2 gap-3 sm:gap-4 md:gap-6 lg:grid-cols-4">
       {products.map((product) => {
         const imageUrl = product.image_urls?.[0];
         const soldOut = isOutOfStock(product.stock_quantity);
@@ -82,20 +82,20 @@ export function ShopProductGrid({
               </div>
             </div>
 
-            <div className="p-5">
-              <p className="text-xs uppercase tracking-wider text-white/40">
+            <div className="p-3 sm:p-4 lg:p-5">
+              <p className="truncate text-[10px] uppercase tracking-wider text-white/40 sm:text-xs">
                 {brandLabel} · {product.category}
               </p>
-              <h2 className="mt-1 text-lg font-semibold leading-snug text-white">
+              <h2 className="mt-1 line-clamp-2 text-sm font-semibold leading-snug text-white sm:text-base lg:text-lg">
                 {product.title}
               </h2>
-              <div className="mt-4 flex items-center justify-between gap-3">
-                <p className="text-xl font-bold tracking-tight">
+              <div className="mt-3 flex flex-col gap-2 sm:mt-4 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
+                <p className="text-base font-bold tracking-tight sm:text-xl">
                   ${Number(product.price).toFixed(2)}
                 </p>
                 <Link
                   href={`/product/${product.id}`}
-                  className={`rounded-xl border border-white/15 bg-white/10 px-4 py-2 text-xs font-semibold uppercase tracking-wider text-white transition-all ${ctaHover}`}
+                  className={`inline-flex min-h-11 items-center justify-center rounded-xl border border-white/15 bg-white/10 px-3 text-[10px] font-semibold uppercase tracking-wider text-white transition-all sm:px-4 sm:text-xs ${ctaHover}`}
                 >
                   View Details
                 </Link>

@@ -147,7 +147,7 @@ export default function LoginPage() {
               <button
                 type="button"
                 onClick={() => switchMode("signin")}
-                className={`flex-1 rounded-lg py-2.5 text-sm font-semibold transition-all ${
+                className={`flex-1 min-h-11 rounded-lg py-2.5 text-sm font-semibold transition-all ${
                   mode === "signin"
                     ? "bg-white text-black"
                     : "text-white/50 hover:text-white/80"
@@ -158,7 +158,7 @@ export default function LoginPage() {
               <button
                 type="button"
                 onClick={() => switchMode("signup")}
-                className={`flex-1 rounded-lg py-2.5 text-sm font-semibold transition-all ${
+                className={`flex-1 min-h-11 rounded-lg py-2.5 text-sm font-semibold transition-all ${
                   mode === "signup"
                     ? "bg-white text-black"
                     : "text-white/50 hover:text-white/80"
@@ -263,7 +263,7 @@ export default function LoginPage() {
               <button
                 type="submit"
                 disabled={loading}
-                className="flex w-full items-center justify-center gap-2 rounded-xl bg-white py-3.5 text-sm font-bold uppercase tracking-widest text-black transition-all hover:bg-gradient-to-r hover:from-violet-500 hover:via-fuchsia-500 hover:to-cyan-400 hover:text-white active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:bg-white disabled:hover:text-black"
+                className="flex w-full min-h-11 items-center justify-center gap-2 rounded-xl bg-white py-3.5 text-sm font-bold uppercase tracking-widest text-black transition-all hover:bg-gradient-to-r hover:from-violet-500 hover:via-fuchsia-500 hover:to-cyan-400 hover:text-white active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:bg-white disabled:hover:text-black"
               >
                 {loading ? (
                   <>

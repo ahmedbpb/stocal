@@ -19,7 +19,7 @@ type Toast = {
 function ToastNotification({ toast }: { toast: Toast }) {
   return (
     <div
-      className={`fixed bottom-6 right-6 z-50 flex items-center gap-3 rounded-xl border px-5 py-3.5 shadow-2xl backdrop-blur-md ${
+      className={`fixed bottom-6 left-4 right-4 z-50 mx-auto max-w-sm rounded-xl border px-5 py-3.5 shadow-2xl backdrop-blur-md sm:left-auto sm:right-6 ${
         toast.type === "success"
           ? "border-emerald-500/30 bg-emerald-500/15 text-emerald-200"
           : "border-red-500/30 bg-red-500/15 text-red-200"
@@ -246,14 +246,14 @@ export default function CartClient({ items: initialItems }: { items: CartItem[] 
                   type="button"
                   onClick={closeCheckoutModal}
                   disabled={checkingOut}
-                  className="flex-1 rounded-xl border border-white/10 bg-white/[0.04] py-3 text-sm font-semibold text-white/70 transition-colors hover:bg-white/[0.08] hover:text-white disabled:cursor-not-allowed disabled:opacity-60"
+                  className="flex-1 min-h-11 rounded-xl border border-white/10 bg-white/[0.04] py-3 text-sm font-semibold text-white/70 transition-colors hover:bg-white/[0.08] hover:text-white disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={checkingOut}
-                  className="flex-1 rounded-xl bg-white py-3 text-sm font-bold uppercase tracking-widest text-black transition-all hover:bg-gradient-to-r hover:from-violet-500 hover:via-fuchsia-500 hover:to-cyan-400 hover:text-white disabled:cursor-not-allowed disabled:opacity-60"
+                  className="flex-1 min-h-11 rounded-xl bg-white py-3 text-sm font-bold uppercase tracking-widest text-black transition-all hover:bg-gradient-to-r hover:from-violet-500 hover:via-fuchsia-500 hover:to-cyan-400 hover:text-white disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {checkingOut ? "Processing…" : "Confirm Order"}
                 </button>
@@ -263,7 +263,7 @@ export default function CartClient({ items: initialItems }: { items: CartItem[] 
         </div>
       )}
 
-      <main className="relative z-10 mx-auto max-w-4xl px-6 py-12">
+      <main className="relative z-10 mx-auto max-w-4xl px-4 py-8 sm:px-6 sm:py-12">
         <header className="mb-8">
           <Link
             href="/"
@@ -295,13 +295,13 @@ export default function CartClient({ items: initialItems }: { items: CartItem[] 
             <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
               <Link
                 href="/shop/local"
-                className="inline-block rounded-xl bg-white px-6 py-3 text-sm font-bold uppercase tracking-wider text-black transition-all hover:bg-fuchsia-500 hover:text-white"
+                className="inline-flex min-h-11 items-center justify-center rounded-xl bg-white px-6 py-3 text-sm font-bold uppercase tracking-wider text-black transition-all hover:bg-fuchsia-500 hover:text-white"
               >
                 Local Brands
               </Link>
               <Link
                 href="/shop/stocks"
-                className="inline-block rounded-xl border border-white/15 bg-white/10 px-6 py-3 text-sm font-bold uppercase tracking-wider text-white transition-all hover:bg-amber-500 hover:text-black"
+                className="inline-flex min-h-11 items-center justify-center rounded-xl border border-white/15 bg-white/10 px-6 py-3 text-sm font-bold uppercase tracking-wider text-white transition-all hover:bg-amber-500 hover:text-black"
               >
                 Original Stocks
               </Link>
@@ -406,7 +406,7 @@ export default function CartClient({ items: initialItems }: { items: CartItem[] 
                             onClick={() =>
                               handleQuantityChange(item.id, item.quantity - 1)
                             }
-                            className="px-3 py-2 text-white/60 transition-colors hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
+                            className="inline-flex min-h-11 min-w-11 items-center justify-center px-3 text-white/60 transition-colors hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
                             aria-label="Decrease quantity"
                           >
                             −
@@ -420,7 +420,7 @@ export default function CartClient({ items: initialItems }: { items: CartItem[] 
                             onClick={() =>
                               handleQuantityChange(item.id, item.quantity + 1)
                             }
-                            className="px-3 py-2 text-white/60 transition-colors hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
+                            className="inline-flex min-h-11 min-w-11 items-center justify-center px-3 text-white/60 transition-colors hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
                             aria-label="Increase quantity"
                           >
                             +
@@ -470,7 +470,7 @@ export default function CartClient({ items: initialItems }: { items: CartItem[] 
                 type="button"
                 onClick={openCheckoutModal}
                 disabled={hasStockIssues}
-                className="mt-6 w-full rounded-xl bg-white py-4 text-sm font-bold uppercase tracking-widest text-black transition-all hover:bg-gradient-to-r hover:from-violet-500 hover:via-fuchsia-500 hover:to-cyan-400 hover:text-white active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40"
+                  className="mt-6 w-full min-h-11 rounded-xl bg-white py-3 text-sm font-bold uppercase tracking-widest text-black transition-all hover:bg-gradient-to-r hover:from-violet-500 hover:via-fuchsia-500 hover:to-cyan-400 hover:text-white active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40"
               >
                 Proceed to Checkout
               </button>

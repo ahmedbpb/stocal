@@ -19,7 +19,7 @@ export default async function LocalBrandsShopPage() {
         />
       </div>
 
-      <main className="relative z-10 mx-auto max-w-6xl px-6 py-12">
+      <main className="relative z-10 mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-12">
         <header className="mb-10">
           <Link
             href="/"
@@ -50,7 +50,7 @@ export default async function LocalBrandsShopPage() {
             </div>
             <Link
               href="/shop/stocks"
-              className="shrink-0 rounded-xl border border-white/10 bg-white/[0.04] px-4 py-2.5 text-xs font-medium text-white/50 transition-colors hover:border-amber-500/30 hover:text-amber-300/90"
+              className="inline-flex min-h-11 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] px-4 text-xs font-medium text-white/50 transition-colors hover:border-amber-500/30 hover:text-amber-300/90"
             >
               Browse Original Stocks →
             </Link>
