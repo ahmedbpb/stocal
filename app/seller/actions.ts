@@ -228,8 +228,9 @@ export async function createSellerProduct(
   let defectImage: File | null = null;
 
   if (role === "stock_seller") {
-    const stockFields = parseStockSellerFields(formData);
-    if (stockFields.error) return { error: stockFields.error };
+    const stockFieldsResult = parseStockSellerFields(formData);
+    if (stockFieldsResult.error) return { error: stockFieldsResult.error };
+    const stockFields = stockFieldsResult;
     condition = stockFields.condition;
     isIntact = stockFields.isIntact;
     defectDescription = stockFields.defectDescription;
@@ -353,10 +354,11 @@ export async function updateSellerProduct(
   let defectImageUrl: string | null = existing.defect_image_url;
 
   if (role === "stock_seller") {
-    const stockFields = parseStockSellerFields(formData, {
+    const stockFieldsResult = parseStockSellerFields(formData, {
       existingDefectImageUrl: existing.defect_image_url,
     });
-    if (stockFields.error) return { error: stockFields.error };
+    if (stockFieldsResult.error) return { error: stockFieldsResult.error };
+    const stockFields = stockFieldsResult;
     condition = stockFields.condition;
     isIntact = stockFields.isIntact;
     defectDescription = stockFields.defectDescription;
