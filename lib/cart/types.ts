@@ -8,7 +8,7 @@ export type CartItem = {
     title: string;
     price: number;
     imageUrl: string | null;
-    approvalStatus: string;
+    productStatus: string;
     stockQuantity: number;
   };
 };

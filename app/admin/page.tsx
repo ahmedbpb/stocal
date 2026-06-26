@@ -5,9 +5,18 @@ import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import { firstJoin } from "@/lib/supabase/first-join";
 import AdminOrdersTable from "./AdminOrdersTable";
+import { RejectProductModal } from "./RejectProductModal";
 import type { AdminOrder, OrderStatus } from "./order-types";
+import { formatPrice } from "@/lib/format-price";
+import { formatConditionLabel } from "@/lib/seller/product-helpers";
 
 type ProductType = "local_brand" | "original_stock";
+
+type PendingVariant = {
+  color: string;
+  size: string;
+  stockQuantity: number;
+};
 
 type PendingProduct = {
   id: string;
@@ -17,7 +26,16 @@ type PendingProduct = {
   category: string;
   price: number;
   stockQuantity: number;
-  defectDeclared: boolean;
+  description: string | null;
+  material: string | null;
+  gender: string | null;
+  sku: string | null;
+  variants: PendingVariant[];
+  condition: string | null;
+  isIntact: boolean;
+  defectDescription: string | null;
+  defectImageUrl: string | null;
+  imageUrl: string | null;
   submittedAt: string;
 };
 
@@ -70,6 +88,7 @@ export default function AdminDashboard() {
   const [products, setProducts] = useState<PendingProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionId, setActionId] = useState<string | null>(null);
+  const [rejectTarget, setRejectTarget] = useState<PendingProduct | null>(null);
   const [toast, setToast] = useState<Toast | null>(null);
   const [orders, setOrders] = useState<AdminOrder[]>([]);
   const [pendingOrderCount, setPendingOrderCount] = useState(0);
@@ -86,9 +105,9 @@ export default function AdminDashboard() {
     const { data: pendingData, error: pendingError } = await supabase
       .from("products")
       .select(
-        "id, title, brand_name, product_type, category, price, stock_quantity, defect_declared, created_at",
+        "id, title, brand_name, product_type, category, price, stock_quantity, description, material, gender, sku, condition, is_intact, defect_description, defect_image_url, image_urls, created_at, product_variants(color, size, stock_quantity)",
       )
-      .eq("approval_status", "pending")
+      .eq("status", "pending")
       .order("created_at", { ascending: false });
 
     if (pendingError) {
@@ -108,7 +127,22 @@ export default function AdminDashboard() {
       category: row.category,
       price: Number(row.price),
       stockQuantity: Number(row.stock_quantity ?? 0),
-      defectDeclared: row.defect_declared,
+      description: row.description,
+      material: row.material,
+      gender: row.gender,
+      sku: row.sku,
+      variants: (row.product_variants ?? []).map(
+        (v: { color: string; size: string; stock_quantity: number }) => ({
+          color: v.color,
+          size: v.size,
+          stockQuantity: Number(v.stock_quantity),
+        }),
+      ),
+      condition: row.condition,
+      isIntact: row.is_intact ?? true,
+      defectDescription: row.defect_description,
+      defectImageUrl: row.defect_image_url,
+      imageUrl: row.image_urls?.[0] ?? null,
       submittedAt: formatRelativeTime(row.created_at),
     }));
 
@@ -181,7 +215,7 @@ export default function AdminDashboard() {
 
     const { error } = await supabase
       .from("products")
-      .update({ approval_status: "approved" })
+      .update({ status: "approved", rejection_reason: null })
       .eq("id", id);
 
     setActionId(null);
@@ -195,15 +229,16 @@ export default function AdminDashboard() {
     showToast("Product approved — now live on the shop.", "success");
   }
 
-  async function handleReject(id: string) {
+  async function handleReject(id: string, reason: string) {
     setActionId(id);
 
     const { error } = await supabase
       .from("products")
-      .update({ approval_status: "rejected" })
+      .update({ status: "rejected", rejection_reason: reason })
       .eq("id", id);
 
     setActionId(null);
+    setRejectTarget(null);
 
     if (error) {
       showToast("Failed to reject product.", "error");
@@ -233,7 +268,7 @@ export default function AdminDashboard() {
     },
     {
       label: "Total Revenue",
-      value: `$${totalRevenue.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`,
+      value: formatPrice(totalRevenue),
       change: "From shipped orders",
       accent: "from-emerald-500/20 to-emerald-500/5",
       ring: "ring-emerald-500/20",
@@ -244,6 +279,17 @@ export default function AdminDashboard() {
   return (
     <div className="flex min-h-screen bg-[#080808] text-white">
       {toast && <ToastNotification toast={toast} />}
+      <RejectProductModal
+        open={rejectTarget !== null}
+        productTitle={rejectTarget?.title ?? ""}
+        loading={actionId === rejectTarget?.id}
+        onClose={() => setRejectTarget(null)}
+        onConfirm={(reason) => {
+          if (rejectTarget) {
+            handleReject(rejectTarget.id, reason);
+          }
+        }}
+      />
 
       <aside className="fixed inset-y-0 left-0 z-20 flex w-64 flex-col border-r border-white/[0.06] bg-[#0c0c0c]">
         <div className="flex h-16 items-center gap-3 border-b border-white/[0.06] px-6">
@@ -373,7 +419,7 @@ export default function AdminDashboard() {
                       <th className="px-6 py-4 font-medium">Category</th>
                       <th className="px-6 py-4 font-medium">Price</th>
                       <th className="px-6 py-4 font-medium">Stock</th>
-                      <th className="px-6 py-4 font-medium">Flags</th>
+                      <th className="px-6 py-4 font-medium">Details</th>
                       <th className="px-6 py-4 font-medium">Submitted</th>
                       <th className="px-6 py-4 font-medium text-right">
                         Actions
@@ -430,32 +476,96 @@ export default function AdminDashboard() {
                             {product.category}
                           </td>
                           <td className="px-6 py-4 font-medium">
-                            ${product.price}
+                            {formatPrice(product.price)}
                           </td>
                           <td className="px-6 py-4 text-white/60">
                             {product.stockQuantity}
                           </td>
                           <td className="px-6 py-4">
-                            {product.defectDeclared ? (
-                              <span className="inline-flex items-center gap-1.5 rounded-lg border border-orange-500/30 bg-orange-500/10 px-2.5 py-1 text-[11px] font-semibold text-orange-300">
-                                <svg
-                                  className="h-3.5 w-3.5 shrink-0"
-                                  fill="none"
-                                  viewBox="0 0 24 24"
-                                  stroke="currentColor"
-                                  strokeWidth={2}
+                            <div className="max-w-sm space-y-2 text-xs text-white/60">
+                              {product.description && (
+                                <p className="line-clamp-2">{product.description}</p>
+                              )}
+                              <div className="flex flex-wrap gap-x-3 gap-y-1">
+                                {product.gender && (
+                                  <span>Gender: {product.gender}</span>
+                                )}
+                                {product.material && (
+                                  <span>Material: {product.material}</span>
+                                )}
+                                {product.sku && <span>SKU: {product.sku}</span>}
+                              </div>
+                              {product.variants.length > 0 && (
+                                <div className="overflow-x-auto rounded-lg border border-white/[0.06]">
+                                  <table className="w-full min-w-[220px] text-left">
+                                    <thead>
+                                      <tr className="border-b border-white/[0.06] text-[10px] uppercase text-white/40">
+                                        <th className="px-2 py-1">Color</th>
+                                        <th className="px-2 py-1">Size</th>
+                                        <th className="px-2 py-1">Stock</th>
+                                      </tr>
+                                    </thead>
+                                    <tbody>
+                                      {product.variants.map((variant, i) => (
+                                        <tr key={`${variant.color}-${variant.size}-${i}`}>
+                                          <td className="px-2 py-1 text-white/80">
+                                            {variant.color}
+                                          </td>
+                                          <td className="px-2 py-1">{variant.size}</td>
+                                          <td className="px-2 py-1">
+                                            {variant.stockQuantity}
+                                          </td>
+                                        </tr>
+                                      ))}
+                                    </tbody>
+                                  </table>
+                                </div>
+                              )}
+                              {product.type === "original_stock" && (
+                                <>
+                                  <p>
+                                    Condition:{" "}
+                                    <span className="text-white/80">
+                                      {formatConditionLabel(product.condition)}
+                                    </span>
+                                    {product.isIntact && (
+                                      <span className="ml-1 text-emerald-400">
+                                        (intact)
+                                      </span>
+                                    )}
+                                  </p>
+                                  {!product.isIntact && (
+                                    <>
+                                      {product.defectDescription && (
+                                        <p className="text-orange-300">
+                                          {product.defectDescription}
+                                        </p>
+                                      )}
+                                      {product.defectImageUrl && (
+                                        <a
+                                          href={product.defectImageUrl}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          className="text-fuchsia-300 underline"
+                                        >
+                                          View defect photo
+                                        </a>
+                                      )}
+                                    </>
+                                  )}
+                                </>
+                              )}
+                              {product.imageUrl && (
+                                <a
+                                  href={product.imageUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-fuchsia-300 underline"
                                 >
-                                  <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                                  />
-                                </svg>
-                                Defect Declared (Review Scope)
-                              </span>
-                            ) : (
-                              <span className="text-xs text-white/25">—</span>
-                            )}
+                                  View product image
+                                </a>
+                              )}
+                            </div>
                           </td>
                           <td className="px-6 py-4 text-white/40">
                             {product.submittedAt}
@@ -470,13 +580,11 @@ export default function AdminDashboard() {
                                 {actionId === product.id ? "…" : "Approve"}
                               </button>
                               <button
-                                onClick={() => handleReject(product.id)}
+                                onClick={() => setRejectTarget(product)}
                                 disabled={actionId === product.id}
                                 className="rounded-lg bg-red-500/15 px-3 py-1.5 text-xs font-semibold text-red-400 ring-1 ring-red-500/30 transition-all hover:bg-red-500/25 hover:text-red-300 disabled:opacity-50"
                               >
-                                {actionId === product.id
-                                  ? "…"
-                                  : "Reject/Review"}
+                                Reject
                               </button>
                             </div>
                           </td>

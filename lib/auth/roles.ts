@@ -2,6 +2,7 @@ export const USER_ROLES = [
   "customer",
   "local_brand",
   "stock_seller",
+  "moderator",
   "super_admin",
 ] as const;
 
@@ -21,6 +22,18 @@ export function isAdminRole(
   role: UserRole | string | null | undefined,
 ): role is typeof ADMIN_ROLE {
   return role === ADMIN_ROLE;
+}
+
+export function isSellerRole(
+  role: UserRole | string | null | undefined,
+): role is "local_brand" | "stock_seller" {
+  return role === "local_brand" || role === "stock_seller";
+}
+
+export function isModeratorRole(
+  role: UserRole | string | null | undefined,
+): boolean {
+  return role === "moderator" || role === "super_admin";
 }
 
 export function normalizeRole(

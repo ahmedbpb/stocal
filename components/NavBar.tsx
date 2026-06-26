@@ -1,15 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import type { User } from "@supabase/supabase-js";
 import { getCartItemCount } from "@/app/cart/actions";
-import { getAccountLabel, getAccountPath } from "@/lib/auth/redirects";
 import { getProfileForUser } from "@/lib/auth/profile";
 import type { UserRole } from "@/lib/auth/roles";
 import { CART_UPDATED_EVENT } from "@/lib/cart/types";
 import { createClient } from "@/lib/supabase/client";
+import { UserMenu } from "@/components/nav/user-menu";
 
 type NavLink = {
   href: string;
@@ -19,8 +19,9 @@ type NavLink = {
 
 const NAV_LINKS: NavLink[] = [
   { href: "/", label: "Home" },
-  { href: "/shop/local", label: "Local Brands" },
-  { href: "/shop/stocks", label: "Original Stocks" },
+  { href: "/browse?type=local_brand", label: "Local Brands" },
+  { href: "/browse?type=stock_seller", label: "Original Stock" },
+  { href: "/community", label: "Community" },
   { href: "/orders", label: "My Orders", authOnly: true },
 ];
 
@@ -28,6 +29,15 @@ const TOUCH_TARGET =
   "inline-flex min-h-11 min-w-11 items-center justify-center";
 
 function isNavLinkActive(pathname: string, href: string) {
+  if (href.startsWith("/browse")) {
+    return pathname === "/browse";
+  }
+  if (href === "/community") {
+    return pathname === "/community";
+  }
+  if (href === "/profile") {
+    return pathname.startsWith("/profile");
+  }
   if (href === "/shop/local" || href === "/shop/stocks") {
     return pathname.startsWith(href);
   }
@@ -62,11 +72,14 @@ function NavLinkItem({
 
 export function NavBar() {
   const pathname = usePathname();
+  const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
   const [ready, setReady] = useState(false);
   const [cartCount, setCartCount] = useState(0);
   const [menuOpen, setMenuOpen] = useState(false);
   const [userRole, setUserRole] = useState<UserRole | null>(null);
+  const [userFullName, setUserFullName] = useState<string | null>(null);
+  const [userAvatarUrl, setUserAvatarUrl] = useState<string | null>(null);
 
   const refreshCartCount = useCallback(async () => {
     const count = await getCartItemCount();
@@ -74,6 +87,14 @@ export function NavBar() {
   }, []);
 
   const closeMenu = useCallback(() => setMenuOpen(false), []);
+
+  const handleLogout = useCallback(async () => {
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    closeMenu();
+    router.push("/");
+    router.refresh();
+  }, [closeMenu, router]);
 
   useEffect(() => {
     const supabase = createClient();
@@ -96,12 +117,16 @@ export function NavBar() {
   useEffect(() => {
     if (!user) {
       setUserRole(null);
+      setUserFullName(null);
+      setUserAvatarUrl(null);
       return;
     }
 
     const supabase = createClient();
     getProfileForUser(supabase, user.id).then((profile) => {
       setUserRole(profile?.role ?? "customer");
+      setUserFullName(profile?.full_name ?? null);
+      setUserAvatarUrl(profile?.avatar_url ?? null);
     });
   }, [user]);
 
@@ -137,13 +162,11 @@ export function NavBar() {
     };
   }, [menuOpen]);
 
-  if (pathname.startsWith("/admin")) {
+  if (pathname.startsWith("/admin") || pathname.startsWith("/seller") || pathname.startsWith("/moderator")) {
     return null;
   }
 
   const isAuthenticated = Boolean(user);
-  const accountHref = isAuthenticated ? getAccountPath(userRole) : "/login";
-  const accountLabel = isAuthenticated ? getAccountLabel(userRole) : "Sign In";
 
   const visibleLinks = NAV_LINKS.filter(
     (link) => !link.authOnly || (ready && isAuthenticated),
@@ -204,12 +227,21 @@ export function NavBar() {
 
           {cartLink}
 
-          {ready && (
+          {ready && isAuthenticated && userRole && (
+            <UserMenu
+              fullName={userFullName}
+              avatarUrl={userAvatarUrl}
+              role={userRole}
+              onLogout={handleLogout}
+            />
+          )}
+
+          {ready && !isAuthenticated && (
             <Link
-              href={accountHref}
+              href="/login"
               className={`${TOUCH_TARGET} ml-1 rounded-lg border border-white/10 bg-white/[0.04] px-4 text-sm font-medium text-white/70 transition-colors hover:bg-white/[0.08] hover:text-white`}
             >
-              {accountLabel}
+              Sign In
             </Link>
           )}
         </nav>
@@ -270,13 +302,24 @@ export function NavBar() {
             />
           ))}
 
-          {ready && (
+          {ready && isAuthenticated && userRole && (
+            <UserMenu
+              fullName={userFullName}
+              avatarUrl={userAvatarUrl}
+              role={userRole}
+              onLogout={handleLogout}
+              onNavigate={closeMenu}
+              variant="mobile"
+            />
+          )}
+
+          {ready && !isAuthenticated && (
             <Link
-              href={accountHref}
+              href="/login"
               onClick={closeMenu}
               className={`${TOUCH_TARGET} mt-1 w-full rounded-lg border border-white/10 bg-white/[0.04] px-4 text-sm font-medium text-white/70 transition-colors hover:bg-white/[0.08] hover:text-white`}
             >
-              {accountLabel}
+              Sign In
             </Link>
           )}
         </nav>

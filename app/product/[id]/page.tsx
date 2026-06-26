@@ -1,6 +1,11 @@
 import { createClient } from "@supabase/supabase-js";
 import { notFound } from "next/navigation";
 import { AmbientBackground } from "@/components/AmbientBackground";
+import { resolveProductVariantSummary } from "@/lib/product-variants";
+import {
+  PRODUCT_STATUS_APPROVED,
+  PRODUCT_STATUS_COLUMN,
+} from "@/lib/products/status-column";
 import ProductDetailsClient from "./ProductDetailsClient";
 import type { ProductDetail } from "./types";
 
@@ -13,15 +18,24 @@ async function getProduct(id: string): Promise<ProductDetail | null> {
   const { data, error } = await supabase
     .from("products")
     .select(
-      "id, title, price, category, product_type, brand_name, description, defect_declared, defect_description, image_urls, condition, sizes, colors, stock_quantity, approval_status",
+      `id, title, price, category, product_type, brand_name, description,
+       defect_declared, defect_description, image_urls, condition,
+       sizes, colors, stock_quantity, status, material, gender,
+       product_variants (color, size, stock_quantity)`,
     )
     .eq("id", id)
-    .eq("approval_status", "approved")
+    .eq(PRODUCT_STATUS_COLUMN, PRODUCT_STATUS_APPROVED)
     .maybeSingle();
 
   if (error || !data) {
     return null;
   }
+
+  const summary = resolveProductVariantSummary(data.product_variants ?? [], {
+    sizes: data.sizes,
+    colors: data.colors,
+    stock_quantity: data.stock_quantity,
+  });
 
   return {
     id: data.id,
@@ -35,9 +49,12 @@ async function getProduct(id: string): Promise<ProductDetail | null> {
     defect_description: data.defect_description,
     image_urls: data.image_urls,
     condition: data.condition,
-    sizes: data.sizes ?? [],
-    colors: data.colors ?? [],
-    stock_quantity: Number(data.stock_quantity ?? 0),
+    sizes: summary.sizes,
+    colors: summary.colors,
+    stock_quantity: summary.stockQuantity,
+    has_variants: summary.hasVariants,
+    material: data.material,
+    gender: data.gender,
   };
 }
 

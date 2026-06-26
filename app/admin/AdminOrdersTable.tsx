@@ -5,6 +5,7 @@ import { updateOrderStatus } from "./actions";
 import { ORDER_STATUSES, type AdminOrder, type OrderStatus } from "./order-types";
 import { statusBadgeClass } from "@/lib/orders/status-styles";
 import { buildWhatsAppOrderConfirmationUrl } from "@/lib/whatsapp/order-confirmation";
+import { formatPrice } from "@/lib/format-price";
 
 function WhatsAppIcon({ className }: { className?: string }) {
   return (
@@ -147,7 +148,7 @@ export default function AdminOrdersTable({
                       </p>
                     </td>
                     <td className="px-6 py-4 font-medium">
-                      ${order.productPrice.toFixed(2)}
+                      {formatPrice(order.productPrice)}
                     </td>
                     <td className="px-6 py-4">
                       <select

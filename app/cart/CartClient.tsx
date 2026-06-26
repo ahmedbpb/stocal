@@ -9,6 +9,7 @@ import {
   updateCartItemQuantity,
 } from "./actions";
 import { notifyCartUpdated, type CartItem } from "@/lib/cart/types";
+import { formatPrice } from "@/lib/format-price";
 import { isOutOfStock } from "@/lib/inventory";
 
 type Toast = {
@@ -73,7 +74,7 @@ export default function CartClient({ items: initialItems }: { items: CartItem[] 
     const productTotal = getProductCartTotal(item.product.id);
     return (
       isOutOfStock(item.product.stockQuantity) ||
-      item.product.approvalStatus !== "approved" ||
+      item.product.productStatus !== "approved" ||
       productTotal > item.product.stockQuantity
     );
   });
@@ -158,7 +159,7 @@ export default function CartClient({ items: initialItems }: { items: CartItem[] 
     refreshCartState([]);
     notifyCartUpdated();
     showToast(
-      `${result.orderCount} order request${result.orderCount === 1 ? "" : "s"} submitted! Total: $${(result.totalAmount ?? 0).toFixed(2)}`,
+      `${result.orderCount} order request${result.orderCount === 1 ? "" : "s"} submitted! Total: ${formatPrice(result.totalAmount ?? 0)}`,
       "success",
     );
     setCheckingOut(false);
@@ -198,7 +199,7 @@ export default function CartClient({ items: initialItems }: { items: CartItem[] 
               <p className="text-xs uppercase tracking-wider text-white/40">
                 Order total
               </p>
-              <p className="mt-1 text-2xl font-bold">${total.toFixed(2)}</p>
+              <p className="mt-1 text-2xl font-bold">{formatPrice(total)}</p>
             </div>
 
             <form onSubmit={handleCheckout} className="mt-6 space-y-4">
@@ -312,7 +313,7 @@ export default function CartClient({ items: initialItems }: { items: CartItem[] 
             <ul className="space-y-4">
               {items.map((item) => {
                 const lineTotal = item.product.price * item.quantity;
-                const unavailable = item.product.approvalStatus !== "approved";
+                const unavailable = item.product.productStatus !== "approved";
                 const soldOut = isOutOfStock(item.product.stockQuantity);
                 const productCartTotal = getProductCartTotal(item.product.id);
                 const overStock = productCartTotal > item.product.stockQuantity;
@@ -394,7 +395,7 @@ export default function CartClient({ items: initialItems }: { items: CartItem[] 
                         )}
 
                         <p className="mt-3 text-sm text-white/40">
-                          ${item.product.price.toFixed(2)} each
+                          {formatPrice(item.product.price)} each
                         </p>
                       </div>
 
@@ -428,7 +429,7 @@ export default function CartClient({ items: initialItems }: { items: CartItem[] 
                         </div>
 
                         <div className="text-right">
-                          <p className="text-lg font-bold">${lineTotal.toFixed(2)}</p>
+                          <p className="text-lg font-bold">{formatPrice(lineTotal)}</p>
                           <button
                             type="button"
                             disabled={busyId === item.id}
@@ -453,7 +454,7 @@ export default function CartClient({ items: initialItems }: { items: CartItem[] 
               <div className="mt-4 space-y-2 text-sm">
                 <div className="flex justify-between text-white/60">
                   <span>Items ({itemCount})</span>
-                  <span>${total.toFixed(2)}</span>
+                  <span>{formatPrice(total)}</span>
                 </div>
                 <div className="flex justify-between text-white/60">
                   <span>Shipping</span>
@@ -463,7 +464,7 @@ export default function CartClient({ items: initialItems }: { items: CartItem[] 
 
               <div className="mt-4 flex justify-between border-t border-white/10 pt-4">
                 <span className="font-semibold">Total</span>
-                <span className="text-2xl font-bold">${total.toFixed(2)}</span>
+                <span className="text-2xl font-bold">{formatPrice(total)}</span>
               </div>
 
               <button

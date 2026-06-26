@@ -12,11 +12,11 @@ export default async function EditProductPage({
 
   const { data, error } = await supabase
     .from("products")
-    .select("id, title, product_type, category, price, stock_quantity, approval_status")
+    .select("id, title, product_type, category, price, stock_quantity, status")
     .eq("id", id)
     .maybeSingle();
 
-  if (error || !data || data.approval_status !== "approved") {
+  if (error || !data || data.status !== "approved") {
     notFound();
   }
 

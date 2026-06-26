@@ -4,7 +4,13 @@ export const POST_LOGIN_PATH = "/";
 export const UNAUTHORIZED_QUERY = "error";
 export const UNAUTHORIZED_VALUE = "unauthorized";
 
-export function getPostLoginPath(_role?: UserRole | null): string {
+export function getPostLoginPath(role?: UserRole | string | null): string {
+  if (role === "super_admin" || role === "admin") {
+    return "/admin";
+  }
+  if (role === "local_brand" || role === "stock_seller") {
+    return "/seller/dashboard";
+  }
   return POST_LOGIN_PATH;
 }
 
@@ -12,17 +18,21 @@ export function getAccountPath(role: UserRole | null | undefined): string {
   switch (role) {
     case "super_admin":
       return "/admin";
+    case "moderator":
+      return "/moderator";
     case "local_brand":
-      return "/add-product/local-brand";
     case "stock_seller":
-      return "/add-product/original-stock";
+      return "/seller/dashboard";
     default:
       return POST_LOGIN_PATH;
   }
 }
 
 export function getAccountLabel(role: UserRole | null | undefined): string {
-  return role === "super_admin" ? "Admin" : "Account";
+  if (role === "super_admin") return "Admin";
+  if (role === "moderator") return "Moderator";
+  if (role === "local_brand" || role === "stock_seller") return "Dashboard";
+  return "Account";
 }
 
 export function isSafeInternalPath(path: string): boolean {
@@ -32,7 +42,7 @@ export function isSafeInternalPath(path: string): boolean {
 export function canAccessAdminRoutes(
   role: UserRole | string | null | undefined,
 ): boolean {
-  return isAdminRole(role);
+  return isAdminRole(role) || role === "admin";
 }
 
 export function resolvePostLoginRedirect(
@@ -41,6 +51,16 @@ export function resolvePostLoginRedirect(
 ): string {
   if (next && isSafeInternalPath(next)) {
     if (next.startsWith("/admin") && !canAccessAdminRoutes(role)) {
+      return POST_LOGIN_PATH;
+    }
+    if (
+      next.startsWith("/seller") &&
+      role !== "local_brand" &&
+      role !== "stock_seller"
+    ) {
+      return POST_LOGIN_PATH;
+    }
+    if (next.startsWith("/moderator") && role !== "moderator" && role !== "super_admin") {
       return POST_LOGIN_PATH;
     }
     return next;

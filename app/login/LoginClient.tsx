@@ -79,11 +79,14 @@ export default function LoginClient() {
           return;
         }
 
-        const profile = signInData.user
-          ? await getProfileForUser(supabase, signInData.user.id)
-          : null;
+        if (!signInData.user) {
+          setError("Something went wrong. Please try again.");
+          return;
+        }
 
-        router.push(resolvePostLoginRedirect(profile?.role, nextPath));
+        const profile = await getProfileForUser(supabase, signInData.user.id);
+        const destination = resolvePostLoginRedirect(profile?.role, nextPath);
+        await router.push(destination);
         router.refresh();
       } else {
         const { data, error: signUpError } = await supabase.auth.signUp({
@@ -98,7 +101,8 @@ export default function LoginClient() {
 
         if (data.session && data.user) {
           const profile = await getProfileForUser(supabase, data.user.id);
-          router.push(resolvePostLoginRedirect(profile?.role, nextPath));
+          const destination = resolvePostLoginRedirect(profile?.role, nextPath);
+          await router.push(destination);
           router.refresh();
         } else {
           setInfo("Account created! Check your email to confirm, then sign in.");

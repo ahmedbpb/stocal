@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { ShopProduct } from "@/lib/shop-products";
 import { isOutOfStock } from "@/lib/inventory";
+import { formatPrice } from "@/lib/format-price";
 
 type ShopProductGridProps = {
   products: ShopProduct[];
@@ -91,7 +92,7 @@ export function ShopProductGrid({
               </h2>
               <div className="mt-3 flex flex-col gap-2 sm:mt-4 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
                 <p className="text-base font-bold tracking-tight sm:text-xl">
-                  ${Number(product.price).toFixed(2)}
+                  {formatPrice(Number(product.price))}
                 </p>
                 <Link
                   href={`/product/${product.id}`}

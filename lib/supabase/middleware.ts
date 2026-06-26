@@ -1,6 +1,8 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { enforceAdminRouteAccess } from "@/lib/auth/middleware-admin";
+import { enforceModeratorRouteAccess } from "@/lib/auth/middleware-moderator";
+import { enforceSellerRouteAccess } from "@/lib/auth/middleware-seller";
 
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
@@ -34,6 +36,22 @@ export async function updateSession(request: NextRequest) {
       adminRedirect.cookies.set(cookie.name, cookie.value, cookie);
     });
     return adminRedirect;
+  }
+
+  const sellerRedirect = await enforceSellerRouteAccess(request, supabase);
+  if (sellerRedirect) {
+    supabaseResponse.cookies.getAll().forEach((cookie) => {
+      sellerRedirect.cookies.set(cookie.name, cookie.value, cookie);
+    });
+    return sellerRedirect;
+  }
+
+  const moderatorRedirect = await enforceModeratorRouteAccess(request, supabase);
+  if (moderatorRedirect) {
+    supabaseResponse.cookies.getAll().forEach((cookie) => {
+      moderatorRedirect.cookies.set(cookie.name, cookie.value, cookie);
+    });
+    return moderatorRedirect;
   }
 
   return supabaseResponse;

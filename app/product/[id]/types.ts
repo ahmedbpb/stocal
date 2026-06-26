@@ -13,4 +13,7 @@ export type ProductDetail = {
   sizes: string[];
   colors: string[];
   stock_quantity: number;
+  has_variants: boolean;
+  material: string | null;
+  gender: string | null;
 };

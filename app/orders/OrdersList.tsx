@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { OrderStatus } from "@/lib/orders/status-styles";
 import { statusBadgeClass } from "@/lib/orders/status-styles";
+import { formatPrice } from "@/lib/format-price";
 
 export type CustomerOrder = {
   id: string;
@@ -86,7 +87,7 @@ export default function OrdersList({ orders }: { orders: CustomerOrder[] }) {
                 Ordered {formatDate(order.createdAt)}
               </p>
               <p className="mt-2 text-lg font-bold tracking-tight">
-                ${order.productPrice.toFixed(2)}
+                {formatPrice(order.productPrice)}
               </p>
             </div>
 

@@ -1,4 +1,8 @@
 import { createClient } from "@supabase/supabase-js";
+import {
+  PRODUCT_STATUS_APPROVED,
+  PRODUCT_STATUS_COLUMN,
+} from "@/lib/products/status-column";
 
 export type ShopProduct = {
   id: string;
@@ -27,7 +31,7 @@ export async function getApprovedProducts(
     .select(
       "id, title, price, category, product_type, brand_name, image_urls, defect_declared, stock_quantity",
     )
-    .eq("approval_status", "approved")
+    .eq(PRODUCT_STATUS_COLUMN, PRODUCT_STATUS_APPROVED)
     .eq("product_type", productType)
     .order("created_at", { ascending: false });
 

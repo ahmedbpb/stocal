@@ -7,7 +7,7 @@ import { isOutOfStock } from "@/lib/inventory";
 
 type ProductVariant = {
   id: string;
-  approval_status: string;
+  status: string;
   sizes: string[] | null;
   colors: string[] | null;
   price: number;
@@ -39,11 +39,11 @@ async function getApprovedProduct(
 ): Promise<ProductVariant> {
   const { data: product, error } = await supabase
     .from("products")
-    .select("id, approval_status, sizes, colors, price, stock_quantity")
+    .select("id, status, sizes, colors, price, stock_quantity")
     .eq("id", productId)
     .single();
 
-  if (error || !product || product.approval_status !== "approved") {
+  if (error || !product || product.status !== "approved") {
     throw new Error("This product is not available.");
   }
 
@@ -310,7 +310,7 @@ export async function checkoutCart(
     const { data: cartItems, error: cartError } = await supabase
       .from("cart_items")
       .select(
-        "id, quantity, selected_size, selected_color, products(id, approval_status, sizes, colors, price, stock_quantity)",
+        "id, quantity, selected_size, selected_color, products(id, status, sizes, colors, price, stock_quantity)",
       )
       .eq("user_id", userId);
 
@@ -324,7 +324,7 @@ export async function checkoutCart(
 
     for (const item of cartItems) {
       const product = getCartProduct(item);
-      if (!product || product.approval_status !== "approved") {
+      if (!product || product.status !== "approved") {
         throw new Error("One or more cart items are no longer available.");
       }
 
@@ -359,7 +359,7 @@ export async function checkoutCart(
 
     for (const item of cartItems) {
       const product = getCartProduct(item);
-      if (!product || product.approval_status !== "approved") {
+      if (!product || product.status !== "approved") {
         throw new Error("One or more cart items are no longer available.");
       }
 

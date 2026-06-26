@@ -20,7 +20,7 @@ export default async function CartPage() {
   const { data, error } = await supabase
     .from("cart_items")
     .select(
-      "id, quantity, selected_size, selected_color, products(id, title, price, image_urls, approval_status, stock_quantity)",
+      "id, quantity, selected_size, selected_color, products(id, title, price, image_urls, status, stock_quantity)",
     )
     .eq("user_id", user.id)
     .order("created_at", { ascending: true });
@@ -38,7 +38,7 @@ export default async function CartPage() {
               title: string;
               price: number;
               image_urls: string[] | null;
-              approval_status: string;
+              status: string;
               stock_quantity: number;
             }
           | {
@@ -46,7 +46,7 @@ export default async function CartPage() {
               title: string;
               price: number;
               image_urls: string[] | null;
-              approval_status: string;
+              status: string;
               stock_quantity: number;
             }[]
           | null,
@@ -64,7 +64,7 @@ export default async function CartPage() {
           title: product.title,
           price: Number(product.price),
           imageUrl: product.image_urls?.[0] ?? null,
-          approvalStatus: product.approval_status,
+          productStatus: product.status,
           stockQuantity: Number(product.stock_quantity ?? 0),
         },
       };

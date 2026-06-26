@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { updateProductStock } from "@/app/admin/products/actions";
 import { formatStockLabel, isOutOfStock } from "@/lib/inventory";
+import { formatPrice } from "@/lib/format-price";
 
 const inputClass =
   "w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3.5 text-sm text-white placeholder:text-white/30 outline-none transition-colors focus:border-white/30 focus:bg-white/[0.07] disabled:opacity-50";
@@ -66,7 +67,7 @@ export default function EditProductClient({
             {product.productType === "local_brand"
               ? "Local Brand"
               : "Original Stock"}{" "}
-            · {product.category} · ${product.price.toFixed(2)}
+            · {product.category} · {formatPrice(product.price)}
           </p>
         </header>
 

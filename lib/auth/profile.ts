@@ -5,11 +5,13 @@ export type UserProfile = {
   id: string;
   role: UserRole;
   full_name: string | null;
+  avatar_url: string | null;
 };
 
 type ProfileRow = {
   role: string | null;
   full_name: string | null;
+  avatar_url: string | null;
 };
 
 export async function getProfileForUser(
@@ -18,7 +20,7 @@ export async function getProfileForUser(
 ): Promise<UserProfile | null> {
   const { data, error } = await supabase
     .from("profiles")
-    .select("role, full_name")
+    .select("role, full_name, avatar_url")
     .eq("id", userId)
     .single<ProfileRow>();
 
@@ -30,6 +32,7 @@ export async function getProfileForUser(
     id: userId,
     role: normalizeRole(data.role),
     full_name: data.full_name,
+    avatar_url: data.avatar_url,
   };
 }
 
@@ -54,6 +57,7 @@ export async function getAuthenticatedProfile(supabase: SupabaseClient): Promise
       id: user.id,
       role: "customer",
       full_name: null,
+      avatar_url: null,
     },
   };
 }

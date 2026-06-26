@@ -206,7 +206,7 @@ export default function LocalBrandAddProductPage() {
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
-              <label htmlFor="price" className={labelClass}>Price ($)</label>
+              <label htmlFor="price" className={labelClass}>Price (EGP)</label>
               <input
                 id="price"
                 type="number"

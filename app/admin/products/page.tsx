@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { requireSuperAdmin } from "@/lib/auth/require-super-admin";
 import { isOutOfStock } from "@/lib/inventory";
+import { formatPrice } from "@/lib/format-price";
 
 type InventoryProduct = {
   id: string;
@@ -17,7 +18,7 @@ export default async function AdminProductsPage() {
   const { data, error } = await supabase
     .from("products")
     .select("id, title, product_type, category, price, stock_quantity")
-    .eq("approval_status", "approved")
+    .eq("status", "approved")
     .order("created_at", { ascending: false });
 
   if (error) {
@@ -100,7 +101,7 @@ export default async function AdminProductsPage() {
                         {product.category}
                       </td>
                       <td className="px-6 py-4 font-medium">
-                        ${product.price.toFixed(2)}
+                        {formatPrice(product.price)}
                       </td>
                       <td className="px-6 py-4">
                         {isOutOfStock(product.stockQuantity) ? (

@@ -5,7 +5,9 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { addToCart } from "@/app/cart/actions";
 import { formatStockLabel, isOutOfStock } from "@/lib/inventory";
+import { formatPrice } from "@/lib/format-price";
 import { notifyCartUpdated } from "@/lib/cart/types";
+import { VariantPreview } from "@/components/variant-preview";
 import type { ProductDetail } from "./types";
 
 type Toast = {
@@ -112,6 +114,7 @@ export default function ProductDetailsClient({
   const colors = product.colors ?? [];
   const requiresSize = sizes.length > 0;
   const requiresColor = colors.length > 0;
+  const hasVariantOptions = product.has_variants || requiresSize || requiresColor;
   const outOfStock = isOutOfStock(product.stock_quantity);
   const canAddToCart =
     !outOfStock &&
@@ -250,8 +253,14 @@ export default function ProductDetailsClient({
             </h1>
             <p className="mt-2 text-sm text-white/50">{brandLabel}</p>
 
+            {(product.material || product.gender) && (
+              <p className="mt-2 text-xs text-white/40">
+                {[product.gender, product.material].filter(Boolean).join(" · ")}
+              </p>
+            )}
+
             <p className="mt-6 text-4xl font-bold tracking-tight">
-              ${Number(product.price).toFixed(2)}
+              {formatPrice(Number(product.price))}
             </p>
 
             <div className="mt-4 flex flex-wrap items-center gap-2">
@@ -325,6 +334,33 @@ export default function ProductDetailsClient({
 
             {(requiresSize || requiresColor) && (
               <div className="mt-8 space-y-6 rounded-2xl border border-white/10 bg-white/[0.03] p-6 backdrop-blur-md">
+                {colors.length > 0 && (
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.2em] text-white/50">
+                      Available colors
+                    </p>
+                    <div className="mt-3">
+                      <VariantPreview colors={colors} sizes={[]} />
+                    </div>
+                  </div>
+                )}
+                {sizes.length > 0 && (
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.2em] text-white/50">
+                      Available sizes
+                    </p>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {sizes.map((size) => (
+                        <span
+                          key={size}
+                          className="rounded-full border border-white/15 bg-white/[0.04] px-3 py-1.5 text-sm text-white/70"
+                        >
+                          {size}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
                 {requiresSize && (
                   <VariantPills
                     label="Select Size"
@@ -371,9 +407,11 @@ export default function ProductDetailsClient({
               >
                 {outOfStock
                   ? "Sold Out"
-                  : adding
-                    ? "Adding…"
-                    : "Add to Cart"}
+                  : hasVariantOptions && !canAddToCart
+                    ? "Choose Options"
+                    : adding
+                      ? "Adding…"
+                      : "Add to Cart"}
               </button>
               <Link
                 href="/cart"

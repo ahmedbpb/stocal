@@ -14,6 +14,7 @@ const ROLE_STYLES: Record<UserRole, string> = {
   customer: "bg-white/10 text-white/60 ring-white/15",
   local_brand: "bg-fuchsia-500/15 text-fuchsia-300 ring-fuchsia-500/25",
   stock_seller: "bg-amber-500/15 text-amber-300 ring-amber-500/25",
+  moderator: "bg-cyan-500/15 text-cyan-300 ring-cyan-500/25",
   super_admin: "bg-violet-500/15 text-violet-300 ring-violet-500/25",
 };
 
@@ -202,6 +203,10 @@ export default function UserManagementClient({
               <p>
                 <span className="text-white/70">stock_seller</span> — list
                 original stock
+              </p>
+              <p>
+                <span className="text-white/70">moderator</span> — review
+                community posts & reports
               </p>
               <p>
                 <span className="text-white/70">super_admin</span> — full

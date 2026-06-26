@@ -99,7 +99,7 @@ export async function createLocalBrandProduct(
       stock_quantity: stockQuantity,
       product_type: "local_brand",
       defect_declared: false,
-      approval_status: "pending",
+      status: "pending",
     })
     .select("id")
     .single();
@@ -209,7 +209,7 @@ export async function createOriginalStockProduct(
       sizes,
       colors,
       stock_quantity: stockQuantity,
-      approval_status: "pending",
+      status: "pending",
     })
     .select("id")
     .single();

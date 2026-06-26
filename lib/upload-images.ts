@@ -29,3 +29,25 @@ export async function uploadProductImages(
 
   return urls;
 }
+
+export async function uploadDefectImage(
+  supabase: SupabaseClient,
+  file: File,
+  userId: string,
+  productId: string,
+): Promise<string> {
+  const ext = file.name.split(".").pop()?.toLowerCase() ?? "jpg";
+  const filePath = `${userId}/${productId}/defect-${Date.now()}-${crypto.randomUUID()}.${ext}`;
+
+  const { error } = await supabase.storage
+    .from(BUCKET)
+    .upload(filePath, file, {
+      upsert: false,
+      contentType: file.type || undefined,
+    });
+
+  if (error) throw error;
+
+  const { data } = supabase.storage.from(BUCKET).getPublicUrl(filePath);
+  return data.publicUrl;
+}
