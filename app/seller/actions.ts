@@ -117,25 +117,38 @@ function parseFormPayload(formData: FormData) {
 function parseStockSellerFields(
   formData: FormData,
   options?: { existingDefectImageUrl?: string | null },
-) {
-  const condition = String(formData.get("condition") ?? "");
+):
+  | { error: string }
+  | {
+      error: null;
+      condition: string;
+      hasDefects: boolean;
+      defectDescription: string | null;
+      defectImage: File | null;
+      isIntact: boolean;
+    } {
+  const condition = (formData.get("condition") as string) ?? null;
   const hasDefects = formData.get("hasDefects") === "yes";
-  const defectDescription = String(formData.get("defectDescription") ?? "").trim();
-  const defectImage = formData.get("defectImage");
+  const defectDescription =
+    ((formData.get("defectDescription") as string) ?? null)?.trim() ?? null;
+  const defectImageRaw = formData.get("defectImage");
+  const defectImage =
+    defectImageRaw instanceof File && defectImageRaw.size > 0
+      ? defectImageRaw
+      : null;
 
   const validConditions = STOCK_CONDITIONS.map((c) => c.value) as string[];
-  if (!validConditions.includes(condition)) {
+  if (!condition || !validConditions.includes(condition)) {
     return { error: "Select a valid condition." };
   }
 
   if (hasDefects) {
-    if (defectDescription.length < DEFECT_MIN_CHARS) {
+    if (!defectDescription || defectDescription.length < DEFECT_MIN_CHARS) {
       return {
         error: `Describe the defect (at least ${DEFECT_MIN_CHARS} characters).`,
       };
     }
-    const hasNewImage = defectImage instanceof File && defectImage.size > 0;
-    if (!hasNewImage && !options?.existingDefectImageUrl) {
+    if (!defectImage && !options?.existingDefectImageUrl) {
       return { error: "Upload a defect photo." };
     }
   }
@@ -145,10 +158,7 @@ function parseStockSellerFields(
     condition,
     hasDefects,
     defectDescription: hasDefects ? defectDescription : null,
-    defectImage:
-      hasDefects && defectImage instanceof File && defectImage.size > 0
-        ? defectImage
-        : null,
+    defectImage: hasDefects ? defectImage : null,
     isIntact: !hasDefects,
   };
 }
